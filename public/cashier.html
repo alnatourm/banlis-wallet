@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كاشير بانليس</title>
+  <style>
+    body{background:#f5f5f5;color:#171717;font-family:Arial,sans-serif;text-align:center;padding:20px}
+    input{box-sizing:border-box;width:90%;padding:15px;margin:10px;border-radius:10px;border:1px solid #ddd;font-size:16px}
+    button{background:#1a1a1a;color:#d4af37;padding:15px 30px;border:0;border-radius:10px;font-size:18px}
+    a{display:block;margin-top:16px;color:#111;font-weight:bold}
+    #result{margin-top:20px}
+  </style>
+</head>
+<body>
+  <h1>كاشير BANLIS</h1>
+  <input id="cashierKey" type="password" autocomplete="current-password" placeholder="مفتاح الكاشير">
+  <input id="phone" inputmode="tel" placeholder="رقم العميل">
+  <input id="stamps" type="number" min="0" max="5" step="1" placeholder="عدد الأختام الجديد (0 إلى 5)">
+  <button id="stampButton" onclick="addStamp()">إنشاء رابط تحديث البطاقة</button>
+  <div id="result" aria-live="polite"></div>
+  <script>
+    async function addStamp(){
+      const result=document.getElementById('result');
+      const button=document.getElementById('stampButton');
+      result.textContent='جارٍ تجهيز الرابط...';
+      button.disabled=true;
+      try{
+        const response=await fetch('/api/stamp',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'x-cashier-key':document.getElementById('cashierKey').value
+          },
+          body:JSON.stringify({
+            phone:document.getElementById('phone').value,
+            stamps:document.getElementById('stamps').value
+          })
+        });
+        const data=await response.json();
+        if(!response.ok) throw new Error(data.message || 'تعذر إنشاء الرابط');
+        const heading=document.createElement('h2');
+        heading.textContent=data.message;
+        const note=document.createElement('p');
+        note.textContent='أرسل الرابط للعميل لفتح البطاقة في Google Wallet';
+        const link=document.createElement('a');
+        link.href=data.walletLink;
+        link.target='_blank';
+        link.rel='noopener';
+        link.textContent='فتح رابط البطاقة';
+        result.replaceChildren(heading,note,link);
+      }catch(error){
+        result.textContent=error.message;
+      }finally{
+        button.disabled=false;
+      }
+    }
+  </script>
+</body>
+</html>
