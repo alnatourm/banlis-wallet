@@ -34,9 +34,9 @@
           body:JSON.stringify({name,phone})
         });
         const data=await response.json();
-        if(!response.ok) throw new Error(data.message || 'تعذر إنشاء البطاقة');
+        if(!response.ok) throw new Error(data.error || data.message || 'تعذر إنشاء البطاقة');
         const link=document.createElement('a');
-        link.href=data.walletLink;
+        link.href=data.saveUrl;
         link.target='_blank';
         link.rel='noopener';
         link.textContent='Add to Google Wallet - أضف لمحفظتك';
