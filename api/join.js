@@ -4,6 +4,23 @@ function base64url(input) {
   return Buffer.from(input).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+function fixPrivateKey(raw) {
+  let k = (raw || '').trim();
+  // remove surrounding quotes if Vercel added them
+  if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) {
+    k = k.slice(1, -1);
+  }
+  // turn literal \n into real newlines
+  k = k.replace(/\\n/g, '\n');
+  // extract just the base64 body between headers
+  k = k.replace(/-----BEGIN.*?-----/s, '').replace(/-----END.*?-----/s, '');
+  // remove ALL whitespace / spaces / newlines - rebuild it clean
+  const body = k.replace(/\s/g, '');
+  // re-wrap at 64 chars like a real PEM file
+  const wrapped = body.match(/.{1,64}/g).join('\n');
+  return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
+}
+
 function signJWT(payload, privateKey, clientEmail) {
   const header = { alg: 'RS256', typ: 'JWT' };
   const now = Math.floor(Date.now() / 1000);
@@ -39,9 +56,9 @@ export default async function handler(req, res) {
 
     const issuerId = process.env.ISSUER_ID;
     const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-    const privateKey = (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+    const privateKey = fixPrivateKey(process.env.GOOGLE_PRIVATE_KEY);
 
-    if (!issuerId || !clientEmail || !privateKey) {
+    if (!issuerId || !clientEmail || !process.env.GOOGLE_PRIVATE_KEY) {
       return res.status(500).json({ error: 'Missing env vars' });
     }
 
