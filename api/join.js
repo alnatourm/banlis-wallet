@@ -5,18 +5,13 @@ function base64url(input) {
 }
 
 function fixPrivateKey(raw) {
-  let k = (raw || '').trim();
-  // remove surrounding quotes if Vercel added them
-  if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) {
-    k = k.slice(1, -1);
-  }
-  // turn literal \n into real newlines
-  k = k.replace(/\\n/g, '\n');
-  // extract just the base64 body between headers
-  k = k.replace(/-----BEGIN.*?-----/s, '').replace(/-----END.*?-----/s, '');
-  // remove ALL whitespace / spaces / newlines - rebuild it clean
-  const body = k.replace(/\s/g, '');
-  // re-wrap at 64 chars like a real PEM file
+  const text = String(raw || '');
+  const m = text.match(/-----BEGIN PRIVATE KEY-----\s*([\s\S]*?)\s*-----END PRIVATE KEY-----/);
+  let body = m ? m[1] : text;
+  // KEEP ONLY base64 chars - kills trailing " , spaces, \n, junk
+  body = body.replace(/[^A-Za-z0-9+/=]/g, '');
+  // If copied starting at the 'n' of \n, like "nMIIE..." - drop that stray 'n'
+  if (body.startsWith('nMII')) body = body.slice(1);
   const wrapped = body.match(/.{1,64}/g).join('\n');
   return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
 }
