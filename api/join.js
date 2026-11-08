@@ -5,12 +5,19 @@ function base64url(input) {
 }
 
 function fixPrivateKey(raw) {
-  const text = String(raw || '');
+  let text = String(raw || '').trim();
+  // 1. Remove surrounding quotes if Vercel added them
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    text = text.slice(1, -1);
+  }
+  // 2. Turn literal \n (backslash + n) into real newlines FIRST - THIS WAS MISSING
+  text = text.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+  // 3. Take ONLY what's between BEGIN and END
   const m = text.match(/-----BEGIN PRIVATE KEY-----\s*([\s\S]*?)\s*-----END PRIVATE KEY-----/);
   let body = m ? m[1] : text;
-  // KEEP ONLY base64 chars - kills trailing " , spaces, \n, junk
+  // 4. KEEP ONLY base64 chars - kills trailing " , spaces, junk
   body = body.replace(/[^A-Za-z0-9+/=]/g, '');
-  // If copied starting at the 'n' of \n, like "nMIIE..." - drop that stray 'n'
+  // 5. If it still starts with stray 'n' from \n, drop it
   if (body.startsWith('nMII')) body = body.slice(1);
   const wrapped = body.match(/.{1,64}/g).join('\n');
   return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
