@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BANLIS - بانليس</title>
+  <style>
+    body{background:#1a1a1a;color:white;font-family:Arial,sans-serif;text-align:center;padding:30px}
+    input{box-sizing:border-box;width:90%;padding:15px;margin:10px 0;border-radius:10px;border:none;font-size:16px;text-align:center}
+    button,a{display:block;box-sizing:border-box;background:#d4af37;color:#111;padding:15px 20px;border:0;border-radius:10px;font-size:18px;font-weight:bold;width:95%;margin:12px auto;text-decoration:none}
+    #message{margin-top:18px}
+  </style>
+</head>
+<body>
+  <h1>BANLIS ☕</h1>
+  <h2>بانليس - بطاقة الولاء</h2>
+  <p>5 أختام = قهوة مجانية</p>
+  <input id="name" maxlength="80" placeholder="اسمك">
+  <input id="phone" inputmode="tel" maxlength="20" placeholder="رقم جوالك">
+  <button id="joinButton" onclick="join()">احصل على بطاقتك</button>
+  <div id="message" aria-live="polite"></div>
+  <script>
+    async function join(){
+      const button=document.getElementById('joinButton');
+      const message=document.getElementById('message');
+      const name=document.getElementById('name').value.trim();
+      const phone=document.getElementById('phone').value.trim();
+      message.textContent='جارٍ إنشاء البطاقة...';
+      button.disabled=true;
+      try{
+        const response=await fetch('/api/join',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({name,phone})
+        });
+        const data=await response.json();
+        if(!response.ok) throw new Error(data.message || 'تعذر إنشاء البطاقة');
+        const link=document.createElement('a');
+        link.href=data.walletLink;
+        link.target='_blank';
+        link.rel='noopener';
+        link.textContent='Add to Google Wallet - أضف لمحفظتك';
+        message.replaceChildren(link);
+      }catch(error){
+        message.textContent=error.message;
+      }finally{
+        button.disabled=false;
+      }
+    }
+  </script>
+</body>
+</html>
