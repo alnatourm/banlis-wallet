@@ -6,18 +6,13 @@ function base64url(input) {
 
 function fixPrivateKey(raw) {
   let text = String(raw || '').trim();
-  // 1. Remove surrounding quotes if Vercel added them
   if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
     text = text.slice(1, -1);
   }
-  // 2. Turn literal \n (backslash + n) into real newlines FIRST - THIS WAS MISSING
   text = text.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
-  // 3. Take ONLY what's between BEGIN and END
   const m = text.match(/-----BEGIN PRIVATE KEY-----\s*([\s\S]*?)\s*-----END PRIVATE KEY-----/);
   let body = m ? m[1] : text;
-  // 4. KEEP ONLY base64 chars - kills trailing " , spaces, junk
   body = body.replace(/[^A-Za-z0-9+/=]/g, '');
-  // 5. If it still starts with stray 'n' from \n, drop it
   if (body.startsWith('nMII')) body = body.slice(1);
   const wrapped = body.match(/.{1,64}/g).join('\n');
   return `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
@@ -29,9 +24,10 @@ function signJWT(payload, privateKey, clientEmail) {
   const fullPayload = {
     iss: clientEmail,
     aud: 'google',
-    origins: [],
+    origins: ['https://banlis-wallet.vercel.app'],
     typ: 'savetowallet',
     iat: now,
+    exp: now + 3600,
     ...payload
   };
   const headerB64 = base64url(JSON.stringify(header));
@@ -68,20 +64,15 @@ export default async function handler(req, res) {
     const objectId = `${issuerId}.${cleanPhone}_${Date.now()}`;
     const classId = `${issuerId}.banlis-loyalty`;
 
+    // MINIMAL VALID CLASS - no SVG logo, no rewardsTier
     const loyaltyClass = {
       id: classId,
       issuerName: 'BANLIS',
-      programName: 'BANLIS',
-      programLogo: {
-        sourceUri: { uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg' },
-        contentDescription: { defaultValue: { language: 'en-US', value: 'BANLIS' } }
-      },
-      hexBackgroundColor: '#000000',
-      rewardsTierLabel: 'Tier',
-      rewardsTier: 'Gold',
+      programName: 'BANLIS Loyalty',
+      reviewStatus: 'UNDER_REVIEW',
+      hexBackgroundColor: '#1a1a1a',
       accountNameLabel: 'Member',
-      accountIdLabel: 'Member ID',
-      reviewStatus: 'UNDER_REVIEW'
+      accountIdLabel: 'Member ID'
     };
 
     const loyaltyObject = {
