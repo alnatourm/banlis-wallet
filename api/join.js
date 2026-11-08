@@ -4,8 +4,8 @@ const ALLOWED_ORIGIN = 'https://banlis-wallet.vercel.app';
 
 function base64url(input) {
   return Buffer.from(input).toString('base64')
-    .replace(/\\+/g, '-')
-    .replace(/\\//g, '_')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
     .replace(/=+$/, '');
 }
 
@@ -36,7 +36,7 @@ function normalizePhone(value) {
   const digits = String(value ?? '')
     .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
     .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
-    .replace(/\\D/g, '');
+    .replace(/\D/g, '');
 
   return digits;
 }
@@ -63,8 +63,8 @@ function signJWT(payload, privateKey, clientEmail) {
 
   const signature = signer.sign(privateKey);
   const sigB64 = signature.toString('base64')
-    .replace(/\\+/g, '-')
-    .replace(/\\//g, '_')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
     .replace(/=+$/, '');
 
   return `${data}.${sigB64}`;
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
-    const name = String(body.name ?? '').trim().replace(/[\\u0000-\\u001F\\u007F]/g, '');
+    const name = String(body.name ?? '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
     const phone = normalizePhone(body.phone);
 
     if (!name || name.length > 80 || phone.length < 8 || phone.length > 15) {
